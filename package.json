@@ -6,7 +6,8 @@
   "scripts": {
     "start": "webpack-dev-server --mode development --open --hot",
     "build": "tsc && webpack --mode production",
-    "lint": "eslint ./src/**/*.{js,jsx,ts,tsx}",
+    "lint": "eslint ./src/*.tsx",
+    "lint:fix": "eslint --fix .",
     "format": "prettier --write \"**/*.+(js|jsx|ts|tsx|json|css|md)\"",
     "test": "jest",
     "test:watch": "jest --watch",

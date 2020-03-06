@@ -39,62 +39,87 @@ function DropZone({
   async function handleDrop(event: React.DragEvent<HTMLDivElement>) {
     event.preventDefault();
 
-    // invoke onDrop callback prop
+    // invoke onDrop callback
     onDrop();
     isHoveringRef.current && setIsHovering(false);
     isHoveringRef.current = false;
 
+    let fileReaderResults: Array<FileReader | null> = [];
     const { items } = event.dataTransfer;
-    let results: Array<FileReader | null> = [];
 
-    if (event.dataTransfer.items) {
+    if (items) {
+      let files: Array<File | null> = [];
       for (let i = 0; i < items.length; i++) {
         // If dropped items aren't files, reject them
         if (items[i].kind === "file") {
-          let file = items[i].getAsFile();
+          files.push(items[i].getAsFile());
+        }
+      }
+      // Get total size of dropped files
+      const totalSize = getTotalFileSize(files);
 
-          if (file) {
-            let result = await uplaodFile(file, i);
-            results.push(result);
-          }
+      for (let i = 0; i < files.length; i++) {
+        let file = files[i];
+        // Get how much data has been uploaded, we will
+        // use this info to calculate progress
+        if (file) {
+          const totalUploadedSoFar = getTotalUploadedSize(files, i);
+
+          let result = await uplaodFile(file, i, totalSize, totalUploadedSoFar);
+          fileReaderResults.push(result);
         }
       }
     } else {
       // Use DataTransfer interface to access the file(s)
       const { files } = event.dataTransfer;
+      const totalSize = getTotalFileSize(files);
 
       for (let i = 0; i < files.length; i++) {
         let file = files[i];
 
         if (file) {
-          let result = await uplaodFile(file, i);
-          results.push(result);
+          const totalUploadedSoFar = getTotalUploadedSize(Array.from(files), i);
+
+          let result = await uplaodFile(file, i, totalSize, totalUploadedSoFar);
+          fileReaderResults.push(result);
         }
       }
     }
 
-    handleFiles(results);
+    handleFiles(fileReaderResults);
   }
 
   async function handleOnChange(event: React.ChangeEvent<HTMLInputElement>) {
     const { files } = event.target;
-    let results: Array<FileReader | null> = [];
+
+    let fileReaderResults: Array<FileReader | null> = [];
 
     if (files) {
+      // Get total size of dropped files
+      const totalSize = getTotalFileSize(files);
+
       for (let i = 0; i < files.length; i++) {
         // If dropped items aren't files, reject them
         let file = files[i];
 
         if (file) {
-          let result = await uplaodFile(file, i);
-          results.push(result);
+          const totalUploadedSoFar = getTotalUploadedSize(Array.from(files), i);
+
+          let result = await uplaodFile(file, i, totalSize, totalUploadedSoFar);
+          fileReaderResults.push(result);
         }
       }
-      handleFiles(results);
+
+      handleFiles(fileReaderResults);
     }
   }
 
-  function uplaodFile(file: File, index: number): Promise<FileReader | null> {
+  function uplaodFile(
+    file: File,
+    index: number,
+    totalSize: number,
+    totalUploadedSoFar: number = 0,
+  ): Promise<FileReader | null> {
     return new Promise((resolve, reject) => {
       let fileReader = new FileReader();
 
@@ -102,9 +127,14 @@ function DropZone({
         resolve(upload.target);
       };
 
-      // (event.loaded / event.total) * 100
       fileReader.onprogress = progress => {
-        handleProgress(progress.loaded);
+        handleProgress(
+          ((progress.loaded + totalUploadedSoFar) / totalSize) * 100,
+        );
+      };
+
+      fileReader.onloadend = () => {
+        handleProgress(((file.size + totalUploadedSoFar) / totalSize) * 100);
       };
 
       fileReader.onerror = () => {
@@ -118,6 +148,24 @@ function DropZone({
 
       fileReader[readAs](file);
     });
+  }
+
+  function getTotalFileSize(files: Array<File | null> | FileList) {
+    let totalSize: number = 0;
+
+    for (let index = 0; index < files.length; index++) {
+      const element = files[index];
+      totalSize += element ? element.size : 0;
+    }
+
+    return totalSize;
+  }
+
+  function getTotalUploadedSize(files: Array<File | null>, i: number) {
+    return files
+      .slice(0, i)
+      .map(file => (file ? file.size : 0))
+      .reduce((t, v) => t + v, 0);
   }
 
   return (

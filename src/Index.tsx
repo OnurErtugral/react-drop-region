@@ -36,7 +36,7 @@ function DropZone({
     }
   });
 
-  function handleDrop(event: React.DragEvent<HTMLDivElement>) {
+  async function handleDrop(event: React.DragEvent<HTMLDivElement>) {
     event.preventDefault();
 
     // invoke onDrop callback prop
@@ -44,77 +44,80 @@ function DropZone({
     isHoveringRef.current && setIsHovering(false);
     isHoveringRef.current = false;
 
+    const { items } = event.dataTransfer;
+    let results: Array<FileReader | null> = [];
+
     if (event.dataTransfer.items) {
-      let results: Array<FileReader | null> = [];
-
-      for (let i = 0; i < event.dataTransfer.items.length; i++) {
+      for (let i = 0; i < items.length; i++) {
         // If dropped items aren't files, reject them
-        if (event.dataTransfer.items[i].kind === "file") {
-          let file = event.dataTransfer.items[i].getAsFile();
-
-          let fileReader = new FileReader();
-
-          fileReader.onload = upload => {
-            results.push(upload.target);
-          };
-
-          // (event.loaded / event.total) * 100
-          fileReader.onprogress = progress => {
-            handleProgress(progress.loaded);
-          };
-
-          fileReader.onerror = () => {
-            onError(`Something went wrong while uploading file number ${i}.`);
-          };
-          fileReader.onabort = () => {
-            onError(`Something went wrong while uploading file number ${i}.`);
-          };
+        if (items[i].kind === "file") {
+          let file = items[i].getAsFile();
 
           if (file) {
-            fileReader[readAs](file);
+            let result = await uplaodFile(file, i);
+            results.push(result);
           }
         }
       }
-      handleFiles(results);
     } else {
       // Use DataTransfer interface to access the file(s)
-      for (let i = 0; i < event.dataTransfer.files.length; i++) {
-        // TODO
-      }
-    }
-  }
+      const { files } = event.dataTransfer;
 
-  function handleOnChange(event: React.ChangeEvent<HTMLInputElement>) {
-    let results: Array<FileReader | null> = [];
-    if (event.target.files) {
-      for (let i = 0; i < event.target.files.length; i++) {
-        // If dropped items aren't files, reject them
-        let file = event.target.files[i];
-
-        let fileReader = new FileReader();
-
-        fileReader.onload = upload => {
-          results.push(upload.target);
-        };
-
-        // (event.loaded / event.total) * 100
-        fileReader.onprogress = progress => {
-          handleProgress(progress.loaded);
-        };
-
-        fileReader.onerror = () => {
-          onError(`Something went wrong while uploading file number ${i}.`);
-        };
-        fileReader.onabort = () => {
-          onError(`Something went wrong while uploading file number ${i}.`);
-        };
+      for (let i = 0; i < files.length; i++) {
+        let file = files[i];
 
         if (file) {
-          fileReader[readAs](file);
+          let result = await uplaodFile(file, i);
+          results.push(result);
+        }
+      }
+    }
+
+    handleFiles(results);
+  }
+
+  async function handleOnChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const { files } = event.target;
+    let results: Array<FileReader | null> = [];
+
+    if (files) {
+      for (let i = 0; i < files.length; i++) {
+        // If dropped items aren't files, reject them
+        let file = files[i];
+
+        if (file) {
+          let result = await uplaodFile(file, i);
+          results.push(result);
         }
       }
       handleFiles(results);
     }
+  }
+
+  function uplaodFile(file: File, index: number): Promise<FileReader | null> {
+    return new Promise((resolve, reject) => {
+      let fileReader = new FileReader();
+
+      fileReader.onload = upload => {
+        resolve(upload.target);
+      };
+
+      // (event.loaded / event.total) * 100
+      fileReader.onprogress = progress => {
+        handleProgress(progress.loaded);
+      };
+
+      fileReader.onerror = () => {
+        onError(`Something went wrong while uploading file number ${index}.`);
+        reject();
+      };
+      fileReader.onabort = () => {
+        onError(`Something went wrong while uploading file number ${index}.`);
+        reject();
+      };
+
+      fileReader[readAs](file);
+    });
   }
 
   return (

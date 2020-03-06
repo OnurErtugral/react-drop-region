@@ -128,9 +128,12 @@ function DropZone({
       };
 
       fileReader.onprogress = progress => {
-        handleProgress(
-          ((progress.loaded + totalUploadedSoFar) / totalSize) * 100,
-        );
+        // if it is 100% loaded, do not call handleProgress here
+        // it will be called in `fileReader.onloadend`
+        progress.loaded !== file.size &&
+          handleProgress(
+            ((progress.loaded + totalUploadedSoFar) / totalSize) * 100,
+          );
       };
 
       fileReader.onloadend = () => {

@@ -15,6 +15,7 @@ interface IProps {
   onError: (ErrorMessage: string) => void;
   handleProgress: (propgress: number) => void;
   allowMultiple?: boolean;
+  disable?: boolean;
 }
 
 function DropZone({
@@ -26,6 +27,7 @@ function DropZone({
   onError,
   handleProgress,
   allowMultiple = true,
+  disable = false,
 }: IProps) {
   const isHoveringRef = React.useRef<boolean>(false);
   const inputRef = React.useRef<HTMLInputElement>();
@@ -40,6 +42,10 @@ function DropZone({
 
   async function handleDrop(event: React.DragEvent<HTMLDivElement>) {
     event.preventDefault();
+
+    if (disable) {
+      return;
+    }
 
     // invoke onDrop callback
     onDrop();
@@ -179,15 +185,15 @@ function DropZone({
         inputRef.current?.click();
       }}
       onDragEnter={() => {
-        !isHoveringRef.current && setIsHovering(true);
+        !isHoveringRef.current && !disable && setIsHovering(true);
         isHoveringRef.current = true;
       }}
       onDragExit={() => {
-        isHoveringRef.current && setIsHovering(false);
+        isHoveringRef.current && !disable && setIsHovering(false);
         isHoveringRef.current = false;
       }}
       onDragLeave={() => {
-        isHoveringRef.current && setIsHovering(false);
+        isHoveringRef.current && !disable && setIsHovering(false);
         isHoveringRef.current = false;
       }}
       onDragOver={event => {
@@ -203,6 +209,7 @@ function DropZone({
         type="file"
         onChange={handleOnChange}
         multiple={allowMultiple ? true : false}
+        disabled={disable ? true : false}
       />
     </div>
   );

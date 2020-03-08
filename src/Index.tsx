@@ -16,6 +16,8 @@ interface IProps {
   handleProgress: (propgress: number) => void;
   allowMultiple?: boolean;
   disable?: boolean;
+  allowKeyboard?: boolean;
+  allowClick?: boolean;
 }
 
 function DropZone({
@@ -28,6 +30,8 @@ function DropZone({
   handleProgress,
   allowMultiple = true,
   disable = false,
+  allowKeyboard = true,
+  allowClick = true,
 }: IProps) {
   const isHoveringRef = React.useRef<boolean>(false);
   const inputRef = React.useRef<HTMLInputElement>();
@@ -43,10 +47,16 @@ function DropZone({
       }
     }
 
-    if (containerRef.current) {
+    if (allowKeyboard && containerRef.current) {
       containerRef.current.addEventListener("keydown", handleKeyDown);
     }
-  }, []);
+
+    return () => {
+      if (containerRef.current) {
+        containerRef.current.removeEventListener("keydown", handleKeyDown);
+      }
+    };
+  }, [allowKeyboard]);
 
   const renderChildren = React.Children.map(children, child => {
     if (React.isValidElement(child)) {
@@ -199,7 +209,9 @@ function DropZone({
     <div
       ref={el => (containerRef.current = el as HTMLDivElement)}
       onClick={() => {
-        inputRef.current?.click();
+        if (allowClick) {
+          inputRef.current?.click();
+        }
       }}
       onDragEnter={() => {
         !isHoveringRef.current && !disable && setIsHovering(true);

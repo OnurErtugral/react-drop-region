@@ -212,6 +212,7 @@ function DropZone({
   return (
     <div
       ref={el => (containerRef.current = el as HTMLDivElement)}
+      style={{ cursor: allowClick ? "pointer" : "default" }}
       onClick={() => {
         if (allowClick) {
           inputRef.current?.click();

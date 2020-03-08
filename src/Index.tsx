@@ -4,6 +4,16 @@ import "./style.css";
 
 import { getTotalFileSize, getTotalUploadedSize } from "./utils";
 
+const types = [
+  "application",
+  "audio",
+  "font",
+  "image",
+  "model",
+  "text",
+  "video",
+] as const;
+
 interface IProps {
   children?: React.ReactNode;
   setIsHovering: (isHovering: boolean) => void;
@@ -22,6 +32,7 @@ interface IProps {
   disable?: boolean;
   allowKeyboard?: boolean;
   allowClick?: boolean;
+  validTypes?: Array<typeof types[number]>;
 }
 
 function DropZone({
@@ -38,6 +49,7 @@ function DropZone({
   disable = false,
   allowKeyboard = true,
   allowClick = true,
+  validTypes = [],
 }: IProps) {
   const isHoveringRef = React.useRef<boolean>(false);
   const inputRef = React.useRef<HTMLInputElement>();
@@ -72,6 +84,22 @@ function DropZone({
     }
   });
 
+  function verifyFileType(fileType: string) {
+    if (validTypes.length === 0) {
+      return true;
+    }
+
+    for (let index = 0; index < validTypes.length; index++) {
+      const validType = validTypes[index];
+
+      if (fileType.includes(validType)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   async function handleDrop(event: React.DragEvent<HTMLDivElement>) {
     event.preventDefault();
 
@@ -92,7 +120,9 @@ function DropZone({
       for (let i = 0; i < (allowMultiple ? items.length : 1); i++) {
         // If dropped items aren't files, reject them
         if (items[i].kind === "file") {
-          files.push(items[i].getAsFile());
+          if (verifyFileType(items[i].type)) {
+            files.push(items[i].getAsFile());
+          }
         }
       }
       // Get total size of dropped files
@@ -117,7 +147,7 @@ function DropZone({
       for (let i = 0; i < (allowMultiple ? files.length : 1); i++) {
         let file = files[i];
 
-        if (file) {
+        if (file && verifyFileType(file.type)) {
           const totalUploadedSoFar = getTotalUploadedSize(Array.from(files), i);
 
           let result = await uplaodFile(file, i, totalSize, totalUploadedSoFar);
@@ -142,7 +172,7 @@ function DropZone({
         // If dropped items aren't files, reject them
         let file = files[i];
 
-        if (file) {
+        if (file && verifyFileType(file.type)) {
           const totalUploadedSoFar = getTotalUploadedSize(Array.from(files), i);
 
           let result = await uplaodFile(file, i, totalSize, totalUploadedSoFar);

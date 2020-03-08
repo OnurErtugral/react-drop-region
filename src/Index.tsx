@@ -6,6 +6,8 @@ interface IProps {
   children?: React.ReactNode;
   setIsHovering: (isHovering: boolean) => void;
   onDrop: () => void;
+  onDragEnter?: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDragLeave?: (event: React.DragEvent<HTMLDivElement>) => void;
   handleFiles: (files: any) => void;
   readAs:
     | "readAsArrayBuffer"
@@ -24,6 +26,8 @@ function DropZone({
   children = [],
   setIsHovering,
   onDrop,
+  onDragEnter,
+  onDragLeave,
   handleFiles,
   readAs,
   onError,
@@ -213,16 +217,28 @@ function DropZone({
           inputRef.current?.click();
         }
       }}
-      onDragEnter={() => {
-        !isHoveringRef.current && !disable && setIsHovering(true);
+      onDragEnter={event => {
+        if (!isHoveringRef.current && !disable) {
+          setIsHovering(true);
+          onDragEnter && onDragEnter(event);
+        }
+
         isHoveringRef.current = true;
       }}
-      onDragExit={() => {
-        isHoveringRef.current && !disable && setIsHovering(false);
+      onDragExit={event => {
+        if (isHoveringRef.current && !disable) {
+          setIsHovering(false);
+          onDragLeave && onDragLeave(event);
+        }
+
         isHoveringRef.current = false;
       }}
-      onDragLeave={() => {
-        isHoveringRef.current && !disable && setIsHovering(false);
+      onDragLeave={event => {
+        if (isHoveringRef.current && !disable) {
+          setIsHovering(false);
+          onDragLeave && onDragLeave(event);
+        }
+
         isHoveringRef.current = false;
       }}
       onDragOver={event => {

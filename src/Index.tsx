@@ -14,6 +14,7 @@ interface IProps {
     | "readAsText";
   onError: (ErrorMessage: string) => void;
   handleProgress: (propgress: number) => void;
+  allowMultiple?: boolean;
 }
 
 function DropZone({
@@ -24,6 +25,7 @@ function DropZone({
   readAs,
   onError,
   handleProgress,
+  allowMultiple = true,
 }: IProps) {
   const isHoveringRef = React.useRef<boolean>(false);
   const inputRef = React.useRef<HTMLInputElement>();
@@ -49,7 +51,7 @@ function DropZone({
 
     if (items) {
       let files: Array<File | null> = [];
-      for (let i = 0; i < items.length; i++) {
+      for (let i = 0; i < (allowMultiple ? items.length : 1); i++) {
         // If dropped items aren't files, reject them
         if (items[i].kind === "file") {
           files.push(items[i].getAsFile());
@@ -74,7 +76,7 @@ function DropZone({
       const { files } = event.dataTransfer;
       const totalSize = getTotalFileSize(files);
 
-      for (let i = 0; i < files.length; i++) {
+      for (let i = 0; i < (allowMultiple ? files.length : 1); i++) {
         let file = files[i];
 
         if (file) {
@@ -200,7 +202,7 @@ function DropZone({
         style={{ display: "none" }}
         type="file"
         onChange={handleOnChange}
-        multiple
+        multiple={allowMultiple ? true : false}
       />
     </div>
   );

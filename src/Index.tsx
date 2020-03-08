@@ -31,6 +31,22 @@ function DropZone({
 }: IProps) {
   const isHoveringRef = React.useRef<boolean>(false);
   const inputRef = React.useRef<HTMLInputElement>();
+  const containerRef = React.useRef<HTMLDivElement>();
+
+  React.useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      switch (e.key) {
+        case "Enter":
+        case " ":
+          inputRef.current?.click();
+          break;
+      }
+    }
+
+    if (containerRef.current) {
+      containerRef.current.addEventListener("keydown", handleKeyDown);
+    }
+  }, []);
 
   const renderChildren = React.Children.map(children, child => {
     if (React.isValidElement(child)) {
@@ -181,6 +197,7 @@ function DropZone({
 
   return (
     <div
+      ref={el => (containerRef.current = el as HTMLDivElement)}
       onClick={() => {
         inputRef.current?.click();
       }}
@@ -200,6 +217,7 @@ function DropZone({
         event.preventDefault();
       }}
       onDrop={handleDrop}
+      tabIndex={0}
     >
       {renderChildren}
 

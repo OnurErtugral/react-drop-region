@@ -17,7 +17,7 @@ const types = [
 interface IProps {
   children?: React.ReactNode;
   setIsHovering: (isHovering: boolean) => void;
-  onDrop: () => void;
+  onDrop?: () => void;
   onDragEnter?: (event: React.DragEvent<HTMLDivElement>) => void;
   onDragLeave?: (event: React.DragEvent<HTMLDivElement>) => void;
   handleFiles: (files: any) => void;
@@ -26,7 +26,7 @@ interface IProps {
     | "readAsBinaryString"
     | "readAsDataURL"
     | "readAsText";
-  onError: (ErrorMessage: string) => void;
+  onError?: (ErrorMessage: string) => void;
   handleProgress: (propgress: number) => void;
   allowMultiple?: boolean;
   disable?: boolean;
@@ -108,7 +108,7 @@ function DropZone({
     }
 
     // invoke onDrop callback
-    onDrop();
+    onDrop && onDrop();
     isHoveringRef.current && setIsHovering(false);
     isHoveringRef.current = false;
 
@@ -211,11 +211,13 @@ function DropZone({
       };
 
       fileReader.onerror = () => {
-        onError(`Something went wrong while uploading file number ${index}.`);
+        onError &&
+          onError(`Something went wrong while uploading file number ${index}.`);
         reject();
       };
       fileReader.onabort = () => {
-        onError(`Something went wrong while uploading file number ${index}.`);
+        onError &&
+          onError(`Something went wrong while uploading file number ${index}.`);
         reject();
       };
 

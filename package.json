@@ -1,7 +1,7 @@
 {
-  "name": "dropzone-npm",
+  "name": "react-drop-region",
   "version": "1.0.0",
-  "description": "",
+  "description": "A React component to upload files with Drag & Drop.",
   "main": "dist/index.js",
   "scripts": {
     "start": "webpack-dev-server --mode development --open --hot",
@@ -13,11 +13,11 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --colors"
   },
-  "types": "dist/Index.d.ts",
+  "types": "dist/index.d.ts",
   "keywords": [],
   "author": "Onur Ertugral",
-  "homepage": "",
-  "bugs": "",
+  "homepage": "https://github.com/OnurErtugral/react-drop-region",
+  "bugs": "https://github.com/OnurErtugral/react-drop-region/issues",
   "license": "MIT",
   "files": [
     "./dist"
@@ -56,7 +56,7 @@
     "webpack-cli": "^3.3.11"
   },
   "peerDependencies": {
-    "react": "^16.12.0"
+    "react": "^16.8.0"
   },
   "dependencies": {},
   "husky": {

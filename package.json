@@ -1,6 +1,6 @@
 {
   "name": "react-drop-region",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A React component to upload files with Drag & Drop.",
   "main": "dist/index.js",
   "scripts": {

@@ -62,7 +62,7 @@ function DropZone({
       switch (e.key) {
         case "Enter":
         case " ":
-          inputRef.current?.click();
+          !disable && inputRef.current?.click();
           break;
       }
     }
@@ -76,7 +76,7 @@ function DropZone({
         containerRef.current.removeEventListener("keydown", handleKeyDown);
       }
     };
-  }, [allowKeyboard]);
+  }, [allowKeyboard, disable]);
 
   const renderChildren = React.Children.map(children, child => {
     if (React.isValidElement(child)) {
@@ -265,7 +265,7 @@ function DropZone({
       ref={el => (containerRef.current = el as HTMLDivElement)}
       style={{ cursor: allowClick ? "pointer" : "default" }}
       onClick={() => {
-        if (allowClick) {
+        if (allowClick && !disable) {
           inputRef.current?.click();
         }
       }}

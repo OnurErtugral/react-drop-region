@@ -20,7 +20,8 @@ interface IProps {
   onDrop?: () => void;
   onDragEnter?: (event: React.DragEvent<HTMLDivElement>) => void;
   onDragLeave?: (event: React.DragEvent<HTMLDivElement>) => void;
-  handleFiles: (files: any) => void;
+  handleAcceptedFiles: (files: Array<FileReader | null>) => void;
+  handleRejectedFiles?: (files: Array<File | null>) => void;
   readAs:
     | "readAsArrayBuffer"
     | "readAsBinaryString"
@@ -41,7 +42,8 @@ function DropZone({
   onDrop,
   onDragEnter,
   onDragLeave,
-  handleFiles,
+  handleAcceptedFiles,
+  handleRejectedFiles,
   readAs,
   onError,
   handleProgress,
@@ -112,19 +114,23 @@ function DropZone({
     isHoveringRef.current && setIsHovering(false);
     isHoveringRef.current = false;
 
-    let fileReaderResults: Array<FileReader | null> = [];
+    let acceptedFiles: Array<FileReader | null> = [];
+    let rejectedFiles: Array<File | null> = [];
     const { items } = event.dataTransfer;
 
     if (items) {
       let files: Array<File | null> = [];
       for (let i = 0; i < (allowMultiple ? items.length : 1); i++) {
-        // If dropped items aren't files, reject them
+        // If dropped items aren't files, skip them
         if (items[i].kind === "file") {
           if (verifyFileType(items[i].type)) {
             files.push(items[i].getAsFile());
+          } else {
+            rejectedFiles.push(items[i].getAsFile());
           }
         }
       }
+
       // Get total size of dropped files
       const totalSize = getTotalFileSize(files);
 
@@ -136,33 +142,49 @@ function DropZone({
           const totalUploadedSoFar = getTotalUploadedSize(files, i);
 
           let result = await uplaodFile(file, i, totalSize, totalUploadedSoFar);
-          fileReaderResults.push(result);
+          acceptedFiles.push(result);
         }
       }
     } else {
       // Use DataTransfer interface to access the file(s)
       const { files } = event.dataTransfer;
+
+      // totalSize will be used to calculate the upload progress
       const totalSize = getTotalFileSize(files);
 
       for (let i = 0; i < (allowMultiple ? files.length : 1); i++) {
         let file = files[i];
 
-        if (file && verifyFileType(file.type)) {
-          const totalUploadedSoFar = getTotalUploadedSize(Array.from(files), i);
+        if (file) {
+          if (verifyFileType(file.type)) {
+            const totalUploadedSoFar = getTotalUploadedSize(
+              Array.from(files),
+              i,
+            );
 
-          let result = await uplaodFile(file, i, totalSize, totalUploadedSoFar);
-          fileReaderResults.push(result);
+            let result = await uplaodFile(
+              file,
+              i,
+              totalSize,
+              totalUploadedSoFar,
+            );
+            acceptedFiles.push(result);
+          } else {
+            rejectedFiles.push(file);
+          }
         }
       }
     }
 
-    handleFiles(fileReaderResults);
+    handleAcceptedFiles(acceptedFiles);
+    handleRejectedFiles && handleRejectedFiles(rejectedFiles);
   }
 
   async function handleOnChange(event: React.ChangeEvent<HTMLInputElement>) {
     const { files } = event.target;
 
-    let fileReaderResults: Array<FileReader | null> = [];
+    let acceptedFiles: Array<FileReader | null> = [];
+    let rejectedFiles: Array<File | null> = [];
 
     if (files) {
       // Get total size of dropped files
@@ -172,15 +194,28 @@ function DropZone({
         // If dropped items aren't files, reject them
         let file = files[i];
 
-        if (file && verifyFileType(file.type)) {
-          const totalUploadedSoFar = getTotalUploadedSize(Array.from(files), i);
+        if (file) {
+          if (verifyFileType(file.type)) {
+            const totalUploadedSoFar = getTotalUploadedSize(
+              Array.from(files),
+              i,
+            );
 
-          let result = await uplaodFile(file, i, totalSize, totalUploadedSoFar);
-          fileReaderResults.push(result);
+            let result = await uplaodFile(
+              file,
+              i,
+              totalSize,
+              totalUploadedSoFar,
+            );
+            acceptedFiles.push(result);
+          } else {
+            rejectedFiles.push(file);
+          }
         }
       }
 
-      handleFiles(fileReaderResults);
+      handleAcceptedFiles(acceptedFiles);
+      handleRejectedFiles && handleRejectedFiles(rejectedFiles);
     }
   }
 

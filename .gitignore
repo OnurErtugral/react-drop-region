@@ -5,3 +5,5 @@ yarn-error.log
 tsconfig.tsbuildinfo
 
 *lock*
+
+coverage

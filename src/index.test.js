@@ -36,6 +36,21 @@ it("renders multiple children", () => {
   expect(wrapper.find(Child)).toHaveLength(2);
 });
 
+it("renders non-valid elements", () => {
+  let Child = () => <div className="demo"></div>;
+
+  const wrapper = mount(
+    <DropRegion>
+      <Child />
+      <Child />
+      Hi I am a non-valid element.
+    </DropRegion>,
+  );
+
+  expect(wrapper.find(Child)).toHaveLength(2);
+  expect(wrapper.text()).toContain("Hi I am a non-valid element.");
+});
+
 it("opens file diolag with click, if 'allowClick' is true", () => {
   let wrapper = mount(<DropRegion></DropRegion>);
 
@@ -47,6 +62,27 @@ it("opens file diolag with click, if 'allowClick' is true", () => {
   wrapper = mount(<DropRegion allowClick={false}></DropRegion>);
   wrapper.simulate("click");
   expect(inputClickSpy).toBeCalledTimes(1);
+});
+
+it("removes keyboard event listener on component unmount", () => {
+  const map = {};
+  HTMLDivElement.prototype.addEventListener = jest.fn((event, cb) => {
+    map[event] = cb;
+  });
+
+  const addEventListenerSpy = jest.spyOn(
+    HTMLDivElement.prototype,
+    "addEventListener",
+  );
+  const removeEventListenerSpy = jest.spyOn(
+    HTMLDivElement.prototype,
+    "removeEventListener",
+  );
+
+  let wrapper = mount(<DropRegion allowKeyboard={true} />);
+  expect(addEventListenerSpy).toBeCalledTimes(1);
+  wrapper.unmount();
+  expect(removeEventListenerSpy).toBeCalledTimes(1);
 });
 
 it("opens file diolag with keyboard event, if 'allowKeyboard' is true", () => {
@@ -226,6 +262,14 @@ it("does not fire onDrag* callbacks, if 'disable' prop is set to true", () => {
   expect(setIsHovering).not.toBeCalled();
   wrapper.simulate("drop");
   expect(setIsHovering).not.toBeCalled();
+});
+
+it("calls 'preventDefault' onDragOver", () => {
+  let wrapper = mount(<DropRegion />);
+
+  let preventDefaultMock = jest.fn();
+  wrapper.simulate("dragOver", { preventDefault: preventDefaultMock });
+  expect(preventDefaultMock).toBeCalledTimes(1);
 });
 
 describe("with click event: ", () => {

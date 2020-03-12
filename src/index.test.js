@@ -36,7 +36,7 @@ it("renders multiple children", () => {
   expect(wrapper.find(Child)).toHaveLength(2);
 });
 
-it("opens file diolag with click if 'allowClick' is true", () => {
+it("opens file diolag with click, if 'allowClick' is true", () => {
   let wrapper = mount(<DropRegion></DropRegion>);
 
   const inputClickSpy = jest.spyOn(HTMLInputElement.prototype, "click");
@@ -49,7 +49,7 @@ it("opens file diolag with click if 'allowClick' is true", () => {
   expect(inputClickSpy).toBeCalledTimes(1);
 });
 
-it("opens file diolag with keyboard event if 'allowKeyboard' is true", () => {
+it("opens file diolag with keyboard event, if 'allowKeyboard' is true", () => {
   const map = {};
   HTMLDivElement.prototype.addEventListener = jest.fn((event, cb) => {
     map[event] = cb;
@@ -75,8 +75,6 @@ it("opens file diolag with keyboard event if 'allowKeyboard' is true", () => {
     map.keydown({ key: " " });
   });
   expect(inputClickSpy).toBeCalledTimes(2);
-
-  //   console.log(wrapper.debug());
 });
 
 it("invokes 'setIsHovering' and 'onDragEnter' callbacks upon onDragEnter event", () => {
@@ -145,6 +143,32 @@ it("invokes 'setIsHovering' and 'onDragLeave' callbacks upon onDragLeave event",
   expect(onDragLeave).toBeCalledTimes(1);
 });
 
+it("invokes 'onDrop' upon onDrop event", () => {
+  const map = {};
+  HTMLDivElement.prototype.addEventListener = jest.fn((event, cb) => {
+    map[event] = cb;
+  });
+
+  const onDrop = jest.fn();
+  const setIsHovering = jest.fn();
+  const handleAcceptedFiles = jest.fn();
+
+  const wrapper = mount(
+    <DropRegion
+      onDrop={onDrop}
+      setIsHovering={setIsHovering}
+      handleAcceptedFiles={handleAcceptedFiles}
+    />,
+  );
+
+  wrapper.simulate("dragEnter");
+  wrapper.simulate("drop", { dataTransfer: { items: [], files: [] } });
+  expect(setIsHovering).toBeCalledTimes(2);
+  expect(onDrop).toBeCalledTimes(1);
+  expect(handleAcceptedFiles).toBeCalledTimes(1);
+  expect(handleAcceptedFiles).toBeCalledWith([]);
+});
+
 it("does not open file dialog, if 'disable' prop is set to true", () => {
   const map = {};
   HTMLDivElement.prototype.addEventListener = jest.fn((event, cb) => {
@@ -161,6 +185,11 @@ it("does not open file dialog, if 'disable' prop is set to true", () => {
 
   act(() => {
     map.keydown({ key: "Enter" });
+  });
+  expect(inputClickSpy).toBeCalledTimes(0);
+
+  act(() => {
+    map.keydown({ key: " " });
   });
   expect(inputClickSpy).toBeCalledTimes(0);
 });
@@ -197,4 +226,402 @@ it("does not fire onDrag* callbacks, if 'disable' prop is set to true", () => {
   expect(setIsHovering).not.toBeCalled();
   wrapper.simulate("drop");
   expect(setIsHovering).not.toBeCalled();
+});
+
+describe("with click event: ", () => {
+  const flushPromises = () => new Promise(window.setImmediate);
+
+  it("uploads a single file, if 'allowMultiple' is false", async () => {
+    const readAsDataURLSpy = jest.spyOn(FileReader.prototype, "readAsDataURL");
+    const onloadSpy = jest
+      .spyOn(FileReader.prototype, "addEventListener")
+      .mockImplementation((type, upload) => {
+        upload({ target: {} });
+      });
+
+    const handleAcceptedFiles = jest.fn();
+    const handleRejectedFiles = jest.fn();
+
+    let wrapper = mount(
+      <DropRegion
+        handleAcceptedFiles={handleAcceptedFiles}
+        handleRejectedFiles={handleRejectedFiles}
+        allowMultiple={false}
+        readAs="readAsDataURL"
+      />,
+    );
+
+    wrapper.find("input").simulate("change", {
+      target: {
+        files: [
+          new File([], "myFile.png", { type: "image/png" }),
+          new File([], "myFile.png", { type: "image/png" }),
+        ],
+      },
+    });
+
+    await flushPromises();
+
+    expect(readAsDataURLSpy).toBeCalledTimes(1);
+    expect(onloadSpy).toBeCalledTimes(1);
+
+    expect(handleAcceptedFiles).toBeCalledTimes(1);
+
+    expect(handleRejectedFiles).toBeCalledTimes(1);
+    expect(handleRejectedFiles).toHaveBeenCalledWith([]);
+  });
+
+  it("uploads multiple files, if 'allowMultiple' is true", async () => {
+    const readAsDataURLSpy = jest.spyOn(FileReader.prototype, "readAsDataURL");
+    const onloadSpy = jest
+      .spyOn(FileReader.prototype, "addEventListener")
+      .mockImplementation((type, upload) => {
+        upload({ target: {} });
+      });
+
+    const handleAcceptedFiles = jest.fn();
+    const handleRejectedFiles = jest.fn();
+
+    let wrapper = mount(
+      <DropRegion
+        handleAcceptedFiles={handleAcceptedFiles}
+        handleRejectedFiles={handleRejectedFiles}
+        allowMultiple={true}
+        readAs="readAsDataURL"
+      />,
+    );
+
+    wrapper.find("input").simulate("change", {
+      target: {
+        files: [
+          new File([], "myFile.png", { type: "image/png" }),
+          new File([], "myFile.png", { type: "image/png" }),
+        ],
+      },
+    });
+
+    await flushPromises();
+
+    expect(readAsDataURLSpy).toBeCalledTimes(2);
+    expect(onloadSpy).toBeCalledTimes(2);
+
+    expect(handleAcceptedFiles).toBeCalledTimes(1);
+
+    expect(handleRejectedFiles).toBeCalledTimes(1);
+    expect(handleRejectedFiles).toHaveBeenCalledWith([]);
+  });
+
+  it("rejects files, if file extention does not match with 'validTypes'", async () => {
+    const readAsDataURLSpy = jest.spyOn(FileReader.prototype, "readAsDataURL");
+    const onloadSpy = jest
+      .spyOn(FileReader.prototype, "addEventListener")
+      .mockImplementation((type, upload) => {
+        upload({ target: {} });
+      });
+
+    const handleAcceptedFiles = jest.fn();
+    const handleRejectedFiles = jest.fn();
+
+    let wrapper = mount(
+      <DropRegion
+        handleAcceptedFiles={handleAcceptedFiles}
+        handleRejectedFiles={handleRejectedFiles}
+        allowMultiple={true}
+        readAs="readAsDataURL"
+        validTypes={["image/"]}
+      />,
+    );
+
+    const imageFile = new File([], "myFile.png", { type: "image/png" });
+    const pdfFile = new File([], "myFile.pdf", { type: "application/pdf" });
+
+    wrapper.find("input").simulate("change", {
+      target: {
+        files: [imageFile, pdfFile, pdfFile],
+      },
+    });
+
+    await flushPromises();
+
+    expect(readAsDataURLSpy).toBeCalledTimes(1);
+    expect(onloadSpy).toBeCalledTimes(1);
+
+    expect(handleAcceptedFiles).toBeCalledTimes(1);
+
+    expect(handleRejectedFiles).toBeCalledTimes(1);
+    expect(handleRejectedFiles).toHaveBeenCalledWith([pdfFile, pdfFile]);
+  });
+});
+
+describe("with drag & drop event and 'dataTransfer.items: ", () => {
+  const flushPromises = () => new Promise(window.setImmediate);
+
+  it("uploads a single file, if 'allowMultiple' is false", async () => {
+    const readAsDataURLSpy = jest.spyOn(FileReader.prototype, "readAsDataURL");
+    const onloadSpy = jest
+      .spyOn(FileReader.prototype, "addEventListener")
+      .mockImplementation((type, upload) => {
+        upload({ target: {} });
+      });
+
+    const onDrop = jest.fn();
+    const setIsHovering = jest.fn();
+    const handleAcceptedFiles = jest.fn();
+    const handleRejectedFiles = jest.fn();
+
+    let wrapper = mount(
+      <DropRegion
+        setIsHovering={setIsHovering}
+        onDrop={onDrop}
+        handleAcceptedFiles={handleAcceptedFiles}
+        handleRejectedFiles={handleRejectedFiles}
+        allowMultiple={false}
+        readAs="readAsDataURL"
+      />,
+    );
+
+    wrapper.simulate("drop", {
+      dataTransfer: {
+        files: [],
+        items: [
+          new File([], "myFile.png", { type: "image/png" }),
+          new File([], "myFile.png", { type: "image/png" }),
+        ].map(file => ({
+          kind: "file",
+          type: file.type,
+          getAsFile: () => file,
+        })),
+      },
+    });
+
+    await flushPromises();
+
+    expect(readAsDataURLSpy).toBeCalledTimes(1);
+    expect(onloadSpy).toBeCalledTimes(1);
+
+    expect(handleAcceptedFiles).toBeCalledTimes(1);
+
+    expect(handleRejectedFiles).toBeCalledTimes(1);
+    expect(handleRejectedFiles).toHaveBeenCalledWith([]);
+  });
+
+  it("uploads multiple files, if 'allowMultiple' is true", async () => {
+    const readAsDataURLSpy = jest.spyOn(FileReader.prototype, "readAsDataURL");
+    const onloadSpy = jest
+      .spyOn(FileReader.prototype, "addEventListener")
+      .mockImplementation((type, upload) => {
+        upload({ target: {} });
+      });
+
+    const handleAcceptedFiles = jest.fn();
+    const handleRejectedFiles = jest.fn();
+
+    let wrapper = mount(
+      <DropRegion
+        handleAcceptedFiles={handleAcceptedFiles}
+        handleRejectedFiles={handleRejectedFiles}
+        allowMultiple={true}
+        readAs="readAsDataURL"
+      />,
+    );
+
+    wrapper.simulate("drop", {
+      dataTransfer: {
+        files: [],
+        items: [
+          new File([], "myFile.png", { type: "image/png" }),
+          new File([], "myFile.png", { type: "image/png" }),
+        ].map(file => ({
+          kind: "file",
+          type: file.type,
+          getAsFile: () => file,
+        })),
+      },
+    });
+
+    await flushPromises();
+
+    expect(readAsDataURLSpy).toBeCalledTimes(2);
+    expect(onloadSpy).toBeCalledTimes(2);
+
+    expect(handleAcceptedFiles).toBeCalledTimes(1);
+
+    expect(handleRejectedFiles).toBeCalledTimes(1);
+    expect(handleRejectedFiles).toHaveBeenCalledWith([]);
+  });
+
+  it("rejects files, if file extention does not match with 'validTypes'", async () => {
+    const readAsDataURLSpy = jest.spyOn(FileReader.prototype, "readAsDataURL");
+    const onloadSpy = jest
+      .spyOn(FileReader.prototype, "addEventListener")
+      .mockImplementation((type, upload) => {
+        upload({ target: {} });
+      });
+
+    const handleAcceptedFiles = jest.fn();
+    const handleRejectedFiles = jest.fn();
+
+    let wrapper = mount(
+      <DropRegion
+        handleAcceptedFiles={handleAcceptedFiles}
+        handleRejectedFiles={handleRejectedFiles}
+        allowMultiple={true}
+        readAs="readAsDataURL"
+        validTypes={["image/"]}
+      />,
+    );
+
+    const imageFile = new File([], "myFile.png", { type: "image/png" });
+    const pdfFile = new File([], "myFile.pdf", { type: "application/pdf" });
+
+    wrapper.simulate("drop", {
+      dataTransfer: {
+        files: [],
+        items: [imageFile, pdfFile, pdfFile].map(file => ({
+          kind: "file",
+          type: file.type,
+          getAsFile: () => file,
+        })),
+      },
+    });
+
+    await flushPromises();
+
+    expect(readAsDataURLSpy).toBeCalledTimes(1);
+    expect(onloadSpy).toBeCalledTimes(1);
+
+    expect(handleAcceptedFiles).toBeCalledTimes(1);
+
+    expect(handleRejectedFiles).toBeCalledTimes(1);
+    expect(handleRejectedFiles).toHaveBeenCalledWith([pdfFile, pdfFile]);
+  });
+});
+
+describe("with drag & drop event and 'dataTransfer.files: ", () => {
+  const flushPromises = () => new Promise(window.setImmediate);
+
+  it("uploads a single file, if 'allowMultiple' is false", async () => {
+    const readAsDataURLSpy = jest.spyOn(FileReader.prototype, "readAsDataURL");
+    const onloadSpy = jest
+      .spyOn(FileReader.prototype, "addEventListener")
+      .mockImplementation((type, upload) => {
+        upload({ target: {} });
+      });
+
+    const onDrop = jest.fn();
+    const setIsHovering = jest.fn();
+    const handleAcceptedFiles = jest.fn();
+    const handleRejectedFiles = jest.fn();
+
+    let wrapper = mount(
+      <DropRegion
+        setIsHovering={setIsHovering}
+        onDrop={onDrop}
+        handleAcceptedFiles={handleAcceptedFiles}
+        handleRejectedFiles={handleRejectedFiles}
+        allowMultiple={false}
+        readAs="readAsDataURL"
+      />,
+    );
+
+    wrapper.simulate("drop", {
+      dataTransfer: {
+        files: [
+          new File([], "myFile.png", { type: "image/png" }),
+          new File([], "myFile.png", { type: "image/png" }),
+        ],
+      },
+    });
+
+    await flushPromises();
+
+    expect(readAsDataURLSpy).toBeCalledTimes(1);
+    expect(onloadSpy).toBeCalledTimes(1);
+
+    expect(handleAcceptedFiles).toBeCalledTimes(1);
+
+    expect(handleRejectedFiles).toBeCalledTimes(1);
+    expect(handleRejectedFiles).toHaveBeenCalledWith([]);
+  });
+
+  it("uploads multiple files, if 'allowMultiple' is true", async () => {
+    const readAsDataURLSpy = jest.spyOn(FileReader.prototype, "readAsDataURL");
+    const onloadSpy = jest
+      .spyOn(FileReader.prototype, "addEventListener")
+      .mockImplementation((type, upload) => {
+        upload({ target: {} });
+      });
+
+    const handleAcceptedFiles = jest.fn();
+    const handleRejectedFiles = jest.fn();
+
+    let wrapper = mount(
+      <DropRegion
+        handleAcceptedFiles={handleAcceptedFiles}
+        handleRejectedFiles={handleRejectedFiles}
+        allowMultiple={true}
+        readAs="readAsDataURL"
+      />,
+    );
+
+    wrapper.simulate("drop", {
+      dataTransfer: {
+        files: [
+          new File([], "myFile.png", { type: "image/png" }),
+          new File([], "myFile.png", { type: "image/png" }),
+        ],
+      },
+    });
+
+    await flushPromises();
+
+    expect(readAsDataURLSpy).toBeCalledTimes(2);
+    expect(onloadSpy).toBeCalledTimes(2);
+
+    expect(handleAcceptedFiles).toBeCalledTimes(1);
+
+    expect(handleRejectedFiles).toBeCalledTimes(1);
+    expect(handleRejectedFiles).toHaveBeenCalledWith([]);
+  });
+
+  it("rejects files, if file extention does not match with 'validTypes'", async () => {
+    const readAsDataURLSpy = jest.spyOn(FileReader.prototype, "readAsDataURL");
+    const onloadSpy = jest
+      .spyOn(FileReader.prototype, "addEventListener")
+      .mockImplementation((type, upload) => {
+        upload({ target: {} });
+      });
+
+    const handleAcceptedFiles = jest.fn();
+    const handleRejectedFiles = jest.fn();
+
+    let wrapper = mount(
+      <DropRegion
+        handleAcceptedFiles={handleAcceptedFiles}
+        handleRejectedFiles={handleRejectedFiles}
+        allowMultiple={true}
+        readAs="readAsDataURL"
+        validTypes={["image/"]}
+      />,
+    );
+
+    const imageFile = new File([], "myFile.png", { type: "image/png" });
+    const pdfFile = new File([], "myFile.pdf", { type: "application/pdf" });
+
+    wrapper.simulate("drop", {
+      dataTransfer: {
+        files: [imageFile, pdfFile, pdfFile],
+      },
+    });
+
+    await flushPromises();
+
+    expect(readAsDataURLSpy).toBeCalledTimes(1);
+    expect(onloadSpy).toBeCalledTimes(1);
+
+    expect(handleAcceptedFiles).toBeCalledTimes(1);
+
+    expect(handleRejectedFiles).toBeCalledTimes(1);
+    expect(handleRejectedFiles).toHaveBeenCalledWith([pdfFile, pdfFile]);
+  });
 });

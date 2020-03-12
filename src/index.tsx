@@ -190,7 +190,7 @@ function DropZone({
       // Get total size of dropped files
       const totalSize = getTotalFileSize(files);
 
-      for (let i = 0; i < files.length; i++) {
+      for (let i = 0; i < (allowMultiple ? files.length : 1); i++) {
         // If dropped items aren't files, reject them
         let file = files[i];
 
@@ -228,9 +228,9 @@ function DropZone({
     return new Promise((resolve, reject) => {
       let fileReader = new FileReader();
 
-      fileReader.onload = upload => {
+      fileReader.addEventListener("load", upload => {
         resolve(upload.target);
-      };
+      });
 
       fileReader.onprogress = progress => {
         // if it is 100% loaded, do not call handleProgress here

@@ -263,7 +263,9 @@ function DropZone({
   return (
     <div
       ref={el => (containerRef.current = el as HTMLDivElement)}
-      style={{ cursor: allowClick ? "pointer" : "default" }}
+      style={{
+        cursor: allowClick ? (disable ? "default" : "pointer") : "default",
+      }}
       onClick={() => {
         if (allowClick && !disable) {
           inputRef.current?.click();
@@ -297,7 +299,7 @@ function DropZone({
         event.preventDefault();
       }}
       onDrop={handleDrop}
-      tabIndex={0}
+      tabIndex={allowKeyboard ? (disable ? -1 : 0) : -1}
     >
       {renderChildren}
 

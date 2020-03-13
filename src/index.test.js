@@ -85,6 +85,42 @@ it("removes keyboard event listener on component unmount", () => {
   expect(removeEventListenerSpy).toBeCalledTimes(1);
 });
 
+it("'tabIndex' is 0, if keyboard is allowed and not disabled", () => {
+  let wrapper = mount(<DropRegion />);
+
+  expect(wrapper.find("div").prop("tabIndex")).toBe(0);
+});
+
+it("if 'allowKeyboard' is false, 'tabindex' is -1", () => {
+  let wrapper = mount(<DropRegion allowKeyboard={false} />);
+
+  expect(wrapper.find("div").prop("tabIndex")).toBe(-1);
+});
+
+it("if 'disable' is true, 'tabindex' is -1", () => {
+  let wrapper = mount(<DropRegion disable={true} />);
+
+  expect(wrapper.find("div").prop("tabIndex")).toBe(-1);
+});
+
+it("if 'allowClick' is false, cursor is 'default'", () => {
+  let wrapper = mount(<DropRegion allowClick={false} />);
+
+  expect(wrapper.find("div").prop("style")).toHaveProperty("cursor", "default");
+});
+
+it("if 'allowClick' is true, cursor is 'pointer'", () => {
+  let wrapper = mount(<DropRegion allowClick={true} />);
+
+  expect(wrapper.find("div").prop("style")).toHaveProperty("cursor", "pointer");
+});
+
+it("if 'disable' is true, cursor is 'default'", () => {
+  let wrapper = mount(<DropRegion disable={true} />);
+
+  expect(wrapper.find("div").prop("style")).toHaveProperty("cursor", "default");
+});
+
 it("opens file diolag with keyboard event, if 'allowKeyboard' is true", () => {
   const map = {};
   HTMLDivElement.prototype.addEventListener = jest.fn((event, cb) => {
@@ -270,6 +306,79 @@ it("calls 'preventDefault' onDragOver", () => {
   let preventDefaultMock = jest.fn();
   wrapper.simulate("dragOver", { preventDefault: preventDefaultMock });
   expect(preventDefaultMock).toBeCalledTimes(1);
+});
+
+describe("'readAs' property", () => {
+  const flushPromises = () => new Promise(window.setImmediate);
+
+  it("readAsArrayBuffer ", async () => {
+    const readAsArrayBufferSpy = jest.spyOn(
+      FileReader.prototype,
+      "readAsArrayBuffer",
+    );
+    jest
+      .spyOn(FileReader.prototype, "addEventListener")
+      .mockImplementation((type, upload) => {
+        upload({ target: {} });
+      });
+
+    const handleAcceptedFiles = jest.fn();
+    const handleRejectedFiles = jest.fn();
+
+    let wrapper = mount(
+      <DropRegion
+        handleAcceptedFiles={handleAcceptedFiles}
+        handleRejectedFiles={handleRejectedFiles}
+        readAs="readAsArrayBuffer"
+      />,
+    );
+
+    wrapper.find("input").simulate("change", {
+      target: {
+        files: [new File([], "myFile.png", { type: "image/png" })],
+      },
+    });
+
+    await flushPromises();
+
+    expect(readAsArrayBufferSpy).toBeCalledTimes(1);
+
+    expect(handleAcceptedFiles).toBeCalledTimes(1);
+    expect(handleRejectedFiles).toBeCalledTimes(1);
+  });
+
+  it("readAsText ", async () => {
+    const readAsTextSpy = jest.spyOn(FileReader.prototype, "readAsText");
+    jest
+      .spyOn(FileReader.prototype, "addEventListener")
+      .mockImplementation((type, upload) => {
+        upload({ target: {} });
+      });
+
+    const handleAcceptedFiles = jest.fn();
+    const handleRejectedFiles = jest.fn();
+
+    let wrapper = mount(
+      <DropRegion
+        handleAcceptedFiles={handleAcceptedFiles}
+        handleRejectedFiles={handleRejectedFiles}
+        readAs="readAsText"
+      />,
+    );
+
+    wrapper.find("input").simulate("change", {
+      target: {
+        files: [new File([], "myFile.png", { type: "image/png" })],
+      },
+    });
+
+    await flushPromises();
+
+    expect(readAsTextSpy).toBeCalledTimes(1);
+
+    expect(handleAcceptedFiles).toBeCalledTimes(1);
+    expect(handleRejectedFiles).toBeCalledTimes(1);
+  });
 });
 
 describe("with click event: ", () => {

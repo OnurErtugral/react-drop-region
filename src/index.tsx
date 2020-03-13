@@ -16,19 +16,19 @@ const types = [
 
 interface IProps {
   children?: React.ReactNode;
-  setIsHovering: (isHovering: boolean) => void;
+  setIsHovering?: (isHovering: boolean) => void;
   onDrop?: () => void;
   onDragEnter?: (event: React.DragEvent<HTMLDivElement>) => void;
   onDragLeave?: (event: React.DragEvent<HTMLDivElement>) => void;
   handleAcceptedFiles: (files: Array<FileReader | null>) => void;
   handleRejectedFiles?: (files: Array<File | null>) => void;
-  readAs:
+  readAs?:
     | "readAsArrayBuffer"
     | "readAsBinaryString"
     | "readAsDataURL"
     | "readAsText";
   onError?: (ErrorMessage: string) => void;
-  handleProgress: (propgress: number) => void;
+  handleProgress?: (propgress: number) => void;
   allowMultiple?: boolean;
   disable?: boolean;
   allowKeyboard?: boolean;
@@ -44,7 +44,7 @@ function DropZone({
   onDragLeave,
   handleAcceptedFiles,
   handleRejectedFiles,
-  readAs,
+  readAs = "readAsDataURL",
   onError,
   handleProgress,
   allowMultiple = true,
@@ -111,7 +111,7 @@ function DropZone({
 
     // invoke onDrop callback
     onDrop && onDrop();
-    isHoveringRef.current && setIsHovering(false);
+    isHoveringRef.current && setIsHovering && setIsHovering(false);
     isHoveringRef.current = false;
 
     let acceptedFiles: Array<FileReader | null> = [];
@@ -236,13 +236,15 @@ function DropZone({
         // if it is 100% loaded, do not call handleProgress here
         // it will be called in `fileReader.onloadend`
         progress.loaded !== file.size &&
+          handleProgress &&
           handleProgress(
             ((progress.loaded + totalUploadedSoFar) / totalSize) * 100,
           );
       };
 
       fileReader.onloadend = () => {
-        handleProgress(((file.size + totalUploadedSoFar) / totalSize) * 100);
+        handleProgress &&
+          handleProgress(((file.size + totalUploadedSoFar) / totalSize) * 100);
       };
 
       fileReader.onerror = () => {
@@ -273,7 +275,7 @@ function DropZone({
       }}
       onDragEnter={event => {
         if (!isHoveringRef.current && !disable) {
-          setIsHovering(true);
+          setIsHovering && setIsHovering(true);
           onDragEnter && onDragEnter(event);
         }
 
@@ -281,7 +283,7 @@ function DropZone({
       }}
       onDragExit={event => {
         if (isHoveringRef.current && !disable) {
-          setIsHovering(false);
+          setIsHovering && setIsHovering(false);
           onDragLeave && onDragLeave(event);
         }
 
@@ -289,7 +291,7 @@ function DropZone({
       }}
       onDragLeave={event => {
         if (isHoveringRef.current && !disable) {
-          setIsHovering(false);
+          setIsHovering && setIsHovering(false);
           onDragLeave && onDragLeave(event);
         }
 
